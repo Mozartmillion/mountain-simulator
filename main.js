@@ -96,5 +96,18 @@ class MountainSimulator {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
+    // 初始化模拟器
     new MountainSimulator();
+    
+    // 隐藏加载动画
+    setTimeout(() => {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+            // 动画结束后移除元素
+            setTimeout(() => {
+                loadingOverlay.remove();
+            }, 500);
+        }
+    }, 800);
 });

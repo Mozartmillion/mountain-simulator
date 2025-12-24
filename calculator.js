@@ -3,6 +3,20 @@ export class MountainZoneCalculator {
     constructor() {
         // 纬度带配置
         this.latitudeConfigs = {
+            tropical: {
+                name: '热带地区 (0°-25°)',
+                tempGradient: 0.6, // 温度递减率 °C/100m
+                zones: [
+                    { name: '热带雨林', minHeight: 0, maxHeight: 1000, color: '#006400' },
+                    { name: '亚热带常绿阔叶林', minHeight: 1000, maxHeight: 2000, color: '#228B22' },
+                    { name: '针阔混交林', minHeight: 2000, maxHeight: 3000, color: '#6B8E23' },
+                    { name: '针叶林', minHeight: 3000, maxHeight: 3800, color: '#4A7C59' },
+                    { name: '高山草甸', minHeight: 3800, maxHeight: 4500, color: '#90C090' },
+                    { name: '高山灌丛', minHeight: 4500, maxHeight: 5200, color: '#A8B9A5' },
+                    { name: '高山荒漠', minHeight: 5200, maxHeight: 6000, color: '#C4A676' },
+                    { name: '冰雪带', minHeight: 6000, maxHeight: 10000, color: '#E8F4F8' }
+                ]
+            },
             subtropical: {
                 name: '亚热带地区 (25°-35°)',
                 tempGradient: 0.6, // 温度递减率 °C/100m
@@ -70,8 +84,27 @@ export class MountainZoneCalculator {
         const config = this.latitudeConfigs[latitudeType];
         const snowline = this.calculateSnowline(baseTemp, config.tempGradient);
         
+        // 特殊情况：基准温度小于等于0°C时，整个山体都是冰雪带
+        if (baseTemp <= 0) {
+            const snowZoneColor = config.zones.find(z => z.name === '冰雪带')?.color || '#E8F4F8';
+            return {
+                zones: [{
+                    name: '冰雪带',
+                    minHeight: 0,
+                    maxHeight: mountainHeight,
+                    color: snowZoneColor,
+                    imageUrl: 'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800&q=80',
+                    tempAtBottom: baseTemp,
+                    tempAtTop: this.calculateTemperature(mountainHeight, baseTemp, config.tempGradient)
+                }],
+                snowline: 0,
+                gradient: config.tempGradient,
+                latitudeName: config.name
+            };
+        }
+        
         // 过滤出在山体高度范围内的自然带
-        const activeZones = config.zones
+        let activeZones = config.zones
             .filter(zone => zone.minHeight < mountainHeight)
             .map(zone => ({
                 ...zone,
@@ -80,6 +113,57 @@ export class MountainZoneCalculator {
                 tempAtTop: this.calculateTemperature(Math.min(zone.maxHeight, mountainHeight), baseTemp, config.tempGradient)
             }))
             .filter(zone => zone.maxHeight > zone.minHeight);
+
+        // 关键修复：如果存在雪线且雪线在山体范围内，则雪线以上只能是冰雪带
+        if (snowline > 0 && snowline < mountainHeight) {
+            activeZones = activeZones.map(zone => {
+                // 如果自然带跨越雪线
+                if (zone.minHeight < snowline && zone.maxHeight > snowline) {
+                    // 非冰雪带：截断到雪线位置
+                    if (zone.name !== '冰雪带') {
+                        return {
+                            ...zone,
+                            maxHeight: snowline,
+                            tempAtTop: this.calculateTemperature(snowline, baseTemp, config.tempGradient)
+                        };
+                    }
+                }
+                // 如果自然带完全在雪线以上
+                else if (zone.minHeight >= snowline) {
+                    // 非冰雪带：移除
+                    if (zone.name !== '冰雪带') {
+                        return null;
+                    }
+                    // 冰雪带：从雪线开始
+                    else {
+                        return {
+                            ...zone,
+                            minHeight: snowline,
+                            tempAtBottom: this.calculateTemperature(snowline, baseTemp, config.tempGradient)
+                        };
+                    }
+                }
+                return zone;
+            }).filter(zone => zone !== null && zone.maxHeight > zone.minHeight);
+
+            // 确保有冰雪带（从雪线到山顶）
+            const hasSnowZone = activeZones.some(zone => zone.name === '冰雪带');
+            if (!hasSnowZone && snowline < mountainHeight) {
+                // 找到冰雪带的颜色
+                const snowZoneColor = config.zones.find(z => z.name === '冰雪带')?.color || '#E8F4F8';
+                activeZones.push({
+                    name: '冰雪带',
+                    minHeight: snowline,
+                    maxHeight: mountainHeight,
+                    color: snowZoneColor,
+                    tempAtBottom: this.calculateTemperature(snowline, baseTemp, config.tempGradient),
+                    tempAtTop: this.calculateTemperature(mountainHeight, baseTemp, config.tempGradient)
+                });
+            }
+        }
+
+        // 按海拔高度排序（从低到高）
+        activeZones.sort((a, b) => a.minHeight - b.minHeight);
 
         return {
             zones: activeZones,

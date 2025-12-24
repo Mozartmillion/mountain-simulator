@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- 加载动画 -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">正在加载山地模拟器...</p>
+    </div>
+
     <!-- 顶部标题栏 -->
     <header class="header">
         <h1>山地垂直自然带教具模拟器</h1>
@@ -23,6 +29,7 @@
             <div class="control-group">
                 <label for="latitude-select">纬度带选择</label>
                 <select id="latitude-select" class="control-select">
+                    <option value="tropical">热带地区 (0°-25°)</option>
                     <option value="subtropical" selected>亚热带地区 (25°-35°)</option>
                     <option value="temperate">温带地区 (35°-50°)</option>
                     <option value="cold-temperate">寒温带地区 (50°-60°)</option>
@@ -75,6 +82,14 @@
             <h2 class="section-title">山地垂直自然带模型</h2>
             <div class="model-container">
                 <canvas id="mountain-canvas"></canvas>
+                <!-- 悬停提示框 -->
+                <div id="zone-tooltip" class="zone-tooltip hidden">
+                    <h4 class="tooltip-title"></h4>
+                    <div class="tooltip-content">
+                        <p class="tooltip-info"><strong>海拔范围：</strong><span class="tooltip-altitude"></span></p>
+                        <p class="tooltip-info"><strong>温度范围：</strong><span class="tooltip-temp"></span></p>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -83,6 +98,10 @@
     <footer class="legend-area">
         <h3>图例说明</h3>
         <div class="legend-container">
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #006400;"></span>
+                <span class="legend-text">热带雨林</span>
+            </div>
             <div class="legend-item">
                 <span class="legend-color" style="background-color: #228B22;"></span>
                 <span class="legend-text">亚热带常绿阔叶林</span>

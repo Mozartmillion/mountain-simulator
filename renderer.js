@@ -5,6 +5,9 @@ export class MountainRenderer {
         this.ctx = this.canvas.getContext('2d');
         this.lastZoneData = null;
         this.lastMountainHeight = null;
+        this.hoveredZone = null;
+        this.zoneAreas = []; // 存储每个自然带的可点击区域
+        this.tooltip = document.getElementById('zone-tooltip');
         
         // 初始化画布大小
         this.resizeCanvas();
@@ -17,8 +20,105 @@ export class MountainRenderer {
                 this.render(this.lastZoneData, this.lastMountainHeight);
             }
         });
+        
+        // 添加鼠标移动事件监听
+        this.canvas.addEventListener('mousemove', (e) => {
+            this.handleMouseMove(e);
+        });
+        
+        // 添加鼠标离开事件监听
+        this.canvas.addEventListener('mouseleave', () => {
+            if (this.hoveredZone !== null) {
+                this.hoveredZone = null;
+                this.canvas.style.cursor = 'default';
+                this.hideTooltip();
+                if (this.lastZoneData && this.lastMountainHeight) {
+                    this.render(this.lastZoneData, this.lastMountainHeight);
+                }
+            }
+        });
     }
-
+    
+    // 显示tooltip
+    showTooltip(zone, x, y) {
+        if (!this.tooltip) return;
+        
+        // 更新tooltip内容
+        this.tooltip.querySelector('.tooltip-title').textContent = zone.name;
+        this.tooltip.querySelector('.tooltip-altitude').textContent = 
+            `${zone.minHeight}米 - ${zone.maxHeight}米`;
+        this.tooltip.querySelector('.tooltip-temp').textContent = 
+            `${zone.tempAtTop.toFixed(1)}°C - ${zone.tempAtBottom.toFixed(1)}°C`;
+        
+        // 计算tooltip位置
+        const tooltipWidth = 250;
+        const tooltipHeight = 150;
+        const canvasRect = this.canvas.getBoundingClientRect();
+        
+        let left = x + 15;
+        let top = y + 15;
+        
+        // 防止tooltip超出右边界
+        if (left + tooltipWidth > canvasRect.width) {
+            left = x - tooltipWidth - 15;
+        }
+        
+        // 防止tooltip超出下边界
+        if (top + tooltipHeight > canvasRect.height) {
+            top = y - tooltipHeight - 15;
+        }
+        
+        this.tooltip.style.left = left + 'px';
+        this.tooltip.style.top = top + 'px';
+        this.tooltip.classList.remove('hidden');
+    }
+    
+    // 隐藏tooltip
+    hideTooltip() {
+        if (this.tooltip) {
+            this.tooltip.classList.add('hidden');
+        }
+    }
+    
+    // 处理鼠标移动
+    handleMouseMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // 检查鼠标是否在某个自然带区域内
+        let foundZone = null;
+        for (let i = 0; i < this.zoneAreas.length; i++) {
+            const area = this.zoneAreas[i];
+            if (x >= area.x && x <= area.x + area.width &&
+                y >= area.y && y <= area.y + area.height) {
+                foundZone = i;
+                break;
+            }
+        }
+        
+        // 如果悬停的区域发生变化，重新渲染
+        if (foundZone !== this.hoveredZone) {
+            this.hoveredZone = foundZone;
+            this.canvas.style.cursor = foundZone !== null ? 'pointer' : 'default';
+            
+            if (foundZone !== null) {
+                const zone = this.lastZoneData.zones[foundZone];
+                this.showTooltip(zone, x, y);
+            } else {
+                this.hideTooltip();
+            }
+            
+            if (this.lastZoneData && this.lastMountainHeight) {
+                this.render(this.lastZoneData, this.lastMountainHeight);
+            }
+        } else if (foundZone !== null) {
+            // 更新tooltip位置
+            const zone = this.lastZoneData.zones[foundZone];
+            this.showTooltip(zone, x, y);
+        }
+    }
+    
     // 调整画布大小
     resizeCanvas() {
         const container = this.canvas.parentElement;
@@ -40,6 +140,9 @@ export class MountainRenderer {
         
         const { zones, snowline } = zoneData;
         
+        // 清空区域记录
+        this.zoneAreas = [];
+        
         // 确保画布尺寸正确
         if (this.canvas.width === 0 || this.canvas.height === 0) {
             this.resizeCanvas();
@@ -56,8 +159,8 @@ export class MountainRenderer {
         const startY = padding;
         
         // 绘制自然带
-        zones.forEach(zone => {
-            this.drawZone(zone, mountainHeight, startX, startY, drawWidth, drawHeight);
+        zones.forEach((zone, index) => {
+            this.drawZone(zone, mountainHeight, startX, startY, drawWidth, drawHeight, index);
         });
         
         // 绘制海拔刻度
@@ -73,14 +176,42 @@ export class MountainRenderer {
     }
 
     // 绘制单个自然带
-    drawZone(zone, mountainHeight, startX, startY, drawWidth, drawHeight) {
+    drawZone(zone, mountainHeight, startX, startY, drawWidth, drawHeight, index) {
         const bottomY = startY + drawHeight - (zone.minHeight / mountainHeight) * drawHeight;
         const topY = startY + drawHeight - (zone.maxHeight / mountainHeight) * drawHeight;
         const zoneHeight = bottomY - topY;
         
+        // 记录区域位置（用于鼠标交互）
+        this.zoneAreas.push({
+            x: startX,
+            y: topY,
+            width: drawWidth,
+            height: zoneHeight,
+            zone: zone
+        });
+        
+        // 判断是否为悬停区域
+        const isHovered = this.hoveredZone === index;
+        
         // 绘制自然带矩形
         this.ctx.fillStyle = zone.color;
         this.ctx.fillRect(startX, topY, drawWidth, zoneHeight);
+        
+        // 如果是悬停区域，添加高亮效果
+        if (isHovered) {
+            // 添加半透明白色覆盖层
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            this.ctx.fillRect(startX, topY, drawWidth, zoneHeight);
+            
+            // 添加发光边框
+            this.ctx.strokeStyle = '#00e5ff';
+            this.ctx.lineWidth = 3;
+            this.ctx.setLineDash([]);
+            this.ctx.shadowColor = '#00e5ff';
+            this.ctx.shadowBlur = 15;
+            this.ctx.strokeRect(startX, topY, drawWidth, zoneHeight);
+            this.ctx.shadowBlur = 0;
+        }
         
         // 绘制分界线
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
@@ -95,23 +226,31 @@ export class MountainRenderer {
         // 绘制自然带名称标签
         if (zoneHeight > 30) {
             const labelY = topY + zoneHeight / 2;
-            this.drawLabel(zone.name, startX + drawWidth / 2, labelY);
+            this.drawLabel(zone.name, startX + drawWidth / 2, labelY, isHovered);
         }
     }
 
     // 绘制标签
-    drawLabel(text, x, y) {
+    drawLabel(text, x, y, isHovered = false) {
         this.ctx.save();
         
         // 测量文本宽度
-        this.ctx.font = 'bold 14px Microsoft YaHei';
+        const fontSize = isHovered ? 16 : 14;
+        this.ctx.font = `bold ${fontSize}px Microsoft YaHei`;
         const metrics = this.ctx.measureText(text);
         const textWidth = metrics.width;
-        const textHeight = 20;
+        const textHeight = isHovered ? 24 : 20;
         
         // 绘制标签背景
-        const padding = 8;
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        const padding = isHovered ? 10 : 8;
+        this.ctx.fillStyle = isHovered ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.7)';
+        
+        if (isHovered) {
+            // 添加阴影效果
+            this.ctx.shadowColor = 'rgba(0, 229, 255, 0.8)';
+            this.ctx.shadowBlur = 10;
+        }
+        
         this.ctx.fillRect(
             x - textWidth / 2 - padding,
             y - textHeight / 2 - padding / 2,
@@ -119,9 +258,11 @@ export class MountainRenderer {
             textHeight + padding
         );
         
+        this.ctx.shadowBlur = 0;
+        
         // 绘制标签边框
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = isHovered ? '#00e5ff' : 'rgba(255, 255, 255, 0.5)';
+        this.ctx.lineWidth = isHovered ? 2 : 1;
         this.ctx.strokeRect(
             x - textWidth / 2 - padding,
             y - textHeight / 2 - padding / 2,
@@ -130,9 +271,15 @@ export class MountainRenderer {
         );
         
         // 绘制文本
-        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillStyle = isHovered ? '#00e5ff' : '#ffffff';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
+        
+        if (isHovered) {
+            this.ctx.shadowColor = 'rgba(0, 229, 255, 0.8)';
+            this.ctx.shadowBlur = 5;
+        }
+        
         this.ctx.fillText(text, x, y);
         
         this.ctx.restore();
