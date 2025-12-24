@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>山地垂直自然带教具模拟器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 顶部标题栏 -->
+    <header class="header">
+        <h1>山地垂直自然带教具模拟器</h1>
+        <p class="subtitle">AI赋能高中地理教学 - 探索山地垂直自然带分布规律</p>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="main-container">
+        <!-- 左侧控制面板 -->
+        <aside class="control-panel">
+            <h2 class="panel-title">控制面板</h2>
+            
+            <!-- 纬度带选择 -->
+            <div class="control-group">
+                <label for="latitude-select">纬度带选择</label>
+                <select id="latitude-select" class="control-select">
+                    <option value="subtropical" selected>亚热带地区 (25°-35°)</option>
+                    <option value="temperate">温带地区 (35°-50°)</option>
+                    <option value="cold-temperate">寒温带地区 (50°-60°)</option>
+                    <option value="frigid">高寒带地区 (>60°)</option>
+                </select>
+            </div>
+
+            <!-- 基准温度调节 -->
+            <div class="control-group">
+                <label for="base-temp">基准温度: <span id="temp-value">15</span>°C</label>
+                <input type="range" id="base-temp" class="control-slider" 
+                       min="-20" max="40" step="0.5" value="15">
+            </div>
+
+            <!-- 山体绝对高度调节 -->
+            <div class="control-group">
+                <label for="mountain-height">山体绝对高度: <span id="height-value">7800</span>米</label>
+                <input type="range" id="mountain-height" class="control-slider" 
+                       min="1000" max="8000" step="100" value="7800">
+            </div>
+
+            <!-- 当前参数显示 -->
+            <div class="current-params">
+                <h3>当前参数</h3>
+                <div class="param-item">
+                    <span class="param-label">纬度:</span>
+                    <span id="param-latitude" class="param-value">亚热带地区 (25°-35°)</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">基准温度:</span>
+                    <span id="param-temp" class="param-value">15°C</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">山体高度:</span>
+                    <span id="param-height" class="param-value">7800米</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">温度梯度:</span>
+                    <span id="param-gradient" class="param-value">0.6°C/100米</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">雪线高度:</span>
+                    <span id="param-snowline" class="param-value">6000米</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧可视化展示区 -->
+        <section class="visualization-area">
+            <h2 class="section-title">山地垂直自然带模型</h2>
+            <div class="model-container">
+                <canvas id="mountain-canvas"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部图例说明区 -->
+    <footer class="legend-area">
+        <h3>图例说明</h3>
+        <div class="legend-container">
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #228B22;"></span>
+                <span class="legend-text">亚热带常绿阔叶林</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #4A7C59;"></span>
+                <span class="legend-text">针叶林</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #6B8E23;"></span>
+                <span class="legend-text">针阔混交林</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #90C090;"></span>
+                <span class="legend-text">高山草甸</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #A8B9A5;"></span>
+                <span class="legend-text">高山灌丛</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #C4A676;"></span>
+                <span class="legend-text">高山荒漠</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #E8F4F8;"></span>
+                <span class="legend-text">冰雪带</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #7CB342;"></span>
+                <span class="legend-text">温带阔叶林</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #9ACD32;"></span>
+                <span class="legend-text">温带草原</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 页脚签名 -->
+    <div class="footer-signature">
+        <p>由 <a href="https://with.woa.com/" style="color: #8A2BE2;" target="_blank">with</a> 通过自然语言生成</p>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
